@@ -16,7 +16,6 @@ app.get('/', (req, res) => {
     res.sendFile(indexPath);
 });
 
-// Middleware para proteger rutas
 const auth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(401).send("Acceso denegado");
@@ -28,7 +27,6 @@ const auth = (req, res, next) => {
     } catch (err) { res.status(403).send("Token inválido"); }
 };
 
-// --- RUTAS DE AUTENTICACIÓN ---
 app.post('/api/register', async (req, res) => {
     const db = await setupDB();
     const hash = await bcrypt.hash(req.body.password, 10);
@@ -51,7 +49,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// --- CRUD DE REFACCIONES ---
 app.get('/api/productos', async (req, res) => {
     const db = await setupDB();
     const productos = await db.all('SELECT * FROM productos');
@@ -73,10 +70,8 @@ app.listen(PORT, async () => {
     const db = await setupDB();
     const hash = await bcrypt.hash('123456', 10);
     
-    // Crear usuario de prueba
     await db.run('INSERT OR IGNORE INTO usuarios (email, password) VALUES (?, ?)', ['admin@test.com', hash]);
     
-    // Crear refacciones de prueba
     const prodCheck = await db.get('SELECT count(*) as count FROM productos');
     if(prodCheck.count === 0) {
         await db.run('INSERT INTO productos (nombre, marca, precio, stock, numero_parte) VALUES (?,?,?,?,?)', 

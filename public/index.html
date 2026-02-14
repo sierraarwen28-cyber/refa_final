@@ -3,108 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Refaccionaria - Panel de Control</title>
+    <title>Refaccionaria "El Rayo"</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; }
-        .login-container { max-width: 400px; margin: 80px auto; }
-        .dashboard { display: none; } /* Se oculta hasta que hagas login */
+        body { background-color: #1a1a1a; color: #f4f4f4; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn-primary { background-color: #ffc107; border: none; color: #000; font-weight: bold; }
+        .btn-primary:hover { background-color: #e0a800; color: #000; }
+        .navbar { background-color: #000 !important; border-bottom: 3px solid #ffc107; }
+        .table { background-color: #2d2d2d; color: #fff; border-radius: 10px; overflow: hidden; }
+        .text-warning { color: #ffc107 !important; }
     </style>
 </head>
 <body>
+    <nav class="navbar navbar-dark mb-5">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">⚡ Refaccionaria "El Rayo"</span>
+        </div>
+    </nav>
 
-    <div id="loginSection" class="container login-container">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">Refaccionaria "El Rayo"</h3>
-                <div class="mb-3">
-                    <label class="form-label">Correo Electrónico</label>
-                    <input type="email" id="email" class="form-control" placeholder="usuario@ejemplo.com">
+    <div class="container">
+        <div id="auth-section" class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card bg-dark text-white p-4">
+                    <h2 class="text-center mb-4" id="auth-title">Iniciar Sesión</h2>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input type="email" id="email" class="form-control" placeholder="admin@test.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" id="password" class="form-control" placeholder="123456">
+                    </div>
+                    
+                    <button onclick="handleAuth()" class="btn btn-primary w-100 mb-3" id="auth-btn">Ingresar</button>
+                    
+                    <div class="text-center">
+                        <a href="#" onclick="toggleAuth()" class="text-warning small" id="toggle-link">¿No tienes cuenta? Regístrate aquí</a>
+                        <hr>
+                        <p class="text-muted x-small">Acceso rápido: <b>123456</b></p>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Contraseña</label>
-                    <input type="password" id="password" class="form-control" placeholder="••••••••">
-                </div>
-                <button onclick="login()" class="btn btn-primary w-100">Iniciar Sesión</button>
-                <div id="errorMsg" class="text-danger mt-2 text-center"></div>
             </div>
         </div>
-    </div>
 
-    <div id="dashboardSection" class="container mt-5 dashboard">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Inventario de Refacciones</h2>
-            <button onclick="logout()" class="btn btn-outline-danger btn-sm">Cerrar Sesión</button>
-        </div>
-        
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <table class="table table-hover">
-                    <thead class="table-dark">
+        <div id="product-section" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-warning">Inventario de Refacciones</h2>
+                <button onclick="logout()" class="btn btn-outline-danger btn-sm">Cerrar Sesión</button>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Parte #</th>
                             <th>Nombre</th>
                             <th>Marca</th>
                             <th>Precio</th>
                             <th>Stock</th>
-                            <th>Parte #</th>
                         </tr>
                     </thead>
-                    <tbody id="listaProductos">
-                        </tbody>
+                    <tbody id="lista-productos"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
-        async function login() {
+        let isLogin = true;
+        let token = "";
+
+        function toggleAuth() {
+            isLogin = !isLogin;
+            document.getElementById('auth-title').innerText = isLogin ? 'Iniciar Sesión' : 'Crear Cuenta';
+            document.getElementById('auth-btn').innerText = isLogin ? 'Ingresar' : 'Registrar';
+            document.getElementById('toggle-link').innerText = isLogin ? '¿No tienes cuenta? Regístrate aquí' : 'Ya tengo cuenta, volver al Login';
+        }
+
+        async function handleAuth() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
-            const res = await fetch('/api/login', {
+            const endpoint = isLogin ? '/api/login' : '/api/register';
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
 
             if (res.ok) {
-                const data = await res.json();
-                localStorage.setItem('token', data.token);
-                showDashboard();
+                if (isLogin) {
+                    const data = await res.json();
+                    token = data.token;
+                    document.getElementById('auth-section').classList.add('d-none');
+                    document.getElementById('product-section').classList.remove('d-none');
+                    cargarProductos();
+                } else {
+                    alert("¡Registro exitoso! Ahora puedes iniciar sesión.");
+                    toggleAuth();
+                }
             } else {
-                document.getElementById('errorMsg').innerText = "Credenciales inválidas";
+                alert("Error: Revisa tus datos");
             }
         }
 
-        async function showDashboard() {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('dashboardSection').style.display = 'block';
-            
-            // Cargar productos
+        async function cargarProductos() {
             const res = await fetch('/api/productos');
             const productos = await res.json();
-            const tabla = document.getElementById('listaProductos');
-            tabla.innerHTML = "";
-
-            productos.forEach(p => {
-                tabla.innerHTML += `
-                    <tr>
-                        <td>${p.id}</td>
-                        <td>${p.nombre}</td>
-                        <td>${p.marca}</td>
-                        <td>$${p.precio}</td>
-                        <td>${p.stock}</td>
-                        <td><span class="badge bg-secondary">${p.numero_parte}</span></td>
-                    </tr>
-                `;
-            });
+            const tabla = document.getElementById('lista-productos');
+            tabla.innerHTML = productos.map(p => `
+                <tr>
+                    <td>${p.numero_parte}</td>
+                    <td>${p.nombre}</td>
+                    <td>${p.marca}</td>
+                    <td>$${p.precio}</td>
+                    <td><span class="badge bg-warning text-dark">${p.stock} pzas</span></td>
+                </tr>
+            `).join('');
         }
 
-        function logout() {
-            localStorage.removeItem('token');
-            location.reload();
-        }
+        function logout() { location.reload(); }
     </script>
 </body>
 </html>
